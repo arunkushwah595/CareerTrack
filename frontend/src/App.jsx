@@ -8,6 +8,7 @@ import {
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import Applications from "./pages/Applications";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -41,6 +42,11 @@ function App() {
                     <Route
                         path="/dashboard"
                         element={<Dashboard />}
+                    />
+
+                    <Route
+                        path="/applications"
+                        element={<Applications />}
                     />
 
                 </Route>
