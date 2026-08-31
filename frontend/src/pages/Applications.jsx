@@ -4,13 +4,14 @@ import {
     Plus,
     SlidersHorizontal,
     MoreHorizontal,
-    CalendarDays
+    CalendarDays,
+    Pencil,
+    Trash2,
+    X
 } from "lucide-react";
 
 import { useEffect, useMemo, useState } from "react";
-
 import api from "../services/api";
-
 import AddApplicationModal from "../components/AddApplicationModal";
 
 import "./Applications.css";
@@ -19,44 +20,32 @@ import "./Applications.css";
 function Applications() {
 
     const [applications, setApplications] = useState([]);
-
     const [loading, setLoading] = useState(true);
-
     const [error, setError] = useState("");
-
     const [search, setSearch] = useState("");
-
     const [statusFilter, setStatusFilter] = useState("All");
-
     const [showModal, setShowModal] = useState(false);
 
+    const [menuId, setMenuId] = useState(null);
+    const [deleteId, setDeleteId] = useState(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     const fetchApplications = async () => {
-
         try {
-
             setLoading(true);
-
             setError("");
 
-            const response =
-                await api.get("/applications");
+            const response = await api.get("/applications");
 
-            setApplications(
-                response.data || []
-            );
+            setApplications(response.data || []);
 
         } catch (error) {
-
             setError(
                 error.response?.data?.message ||
                 "Unable to load applications."
             );
-
         } finally {
-
             setLoading(false);
-
         }
     };
 
@@ -66,33 +55,43 @@ function Applications() {
     }, []);
 
 
+    useEffect(() => {
+
+        const closeMenu = () => {
+            setMenuId(null);
+        };
+
+        document.addEventListener("click", closeMenu);
+
+        return () => {
+            document.removeEventListener("click", closeMenu);
+        };
+
+    }, []);
+
+
     const filteredApplications = useMemo(() => {
 
         return applications.filter((application) => {
 
+            const query = search.toLowerCase().trim();
+
             const matchesSearch =
                 application.company
                     ?.toLowerCase()
-                    .includes(search.toLowerCase()) ||
+                    .includes(query) ||
                 application.role
                     ?.toLowerCase()
-                    .includes(search.toLowerCase());
-
+                    .includes(query);
 
             const matchesStatus =
                 statusFilter === "All" ||
                 application.status === statusFilter;
 
-
             return matchesSearch && matchesStatus;
-
         });
 
-    }, [
-        applications,
-        search,
-        statusFilter
-    ]);
+    }, [applications, search, statusFilter]);
 
 
     const formatDate = (date) => {
@@ -134,8 +133,84 @@ function Applications() {
     };
 
 
+    const handleMenuClick = (event, id) => {
+
+        event.stopPropagation();
+
+        setMenuId(
+            menuId === id
+                ? null
+                : id
+        );
+    };
+
+
+    const handleEdit = () => {
+
+        setMenuId(null);
+
+        /*
+         * Edit mode will be added to the existing
+         * AddApplicationModal in the next step.
+         */
+    };
+
+
+    const handleDelete = (id) => {
+
+        setMenuId(null);
+        setDeleteId(id);
+    };
+
+
+    const confirmDelete = async () => {
+
+        if (!deleteId) {
+            return;
+        }
+
+        try {
+
+            setDeleteLoading(true);
+
+            await api.delete(
+                `/applications/${deleteId}`
+            );
+
+            setApplications((current) =>
+                current.filter(
+                    (application) =>
+                        application._id !== deleteId
+                )
+            );
+
+            setDeleteId(null);
+
+        } catch (error) {
+
+            setError(
+                error.response?.data?.message ||
+                "Unable to delete application."
+            );
+
+        } finally {
+
+            setDeleteLoading(false);
+        }
+    };
+
+
+    const deleteApplication = applications.find(
+        (application) =>
+            application._id === deleteId
+    );
+
+
     return (
-        <div className="applications-page">
+        <div
+            className="applications-page"
+            onClick={() => setMenuId(null)}
+        >
 
             <div className="applications-page-header">
 
@@ -163,10 +238,12 @@ function Applications() {
 
                 <button
                     className="applications-add-button"
-                    onClick={() => setShowModal(true)}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        setShowModal(true);
+                    }}
                 >
                     <Plus size={15} />
-
                     Add application
                 </button>
 
@@ -244,8 +321,7 @@ function Applications() {
                         </h2>
 
                         <span>
-                            {filteredApplications.length}
-                            {" "}
+                            {filteredApplications.length}{" "}
                             {filteredApplications.length === 1
                                 ? "application"
                                 : "applications"}
@@ -262,6 +338,7 @@ function Applications() {
 
                         {Array.from({ length: 5 }).map(
                             (_, index) => (
+
                                 <div
                                     className="page-skeleton-row"
                                     key={index}
@@ -272,6 +349,7 @@ function Applications() {
                                     <span />
                                     <span />
                                 </div>
+
                             )
                         )}
 
@@ -355,8 +433,7 @@ function Applications() {
                                 Applied
                             </span>
 
-                            <span>
-                            </span>
+                            <span />
 
                         </div>
 
@@ -376,9 +453,11 @@ function Applications() {
                                     <div className="application-company">
 
                                         <div className="application-company-logo">
+
                                             {application.company
                                                 ?.charAt(0)
                                                 ?.toUpperCase()}
+
                                         </div>
 
                                         <span>
@@ -413,12 +492,55 @@ function Applications() {
                                     </span>
 
 
-                                    <button
-                                        className="application-more-button"
-                                        aria-label={`Actions for ${application.company}`}
-                                    >
-                                        <MoreHorizontal size={17} />
-                                    </button>
+                                    <div className="application-actions">
+
+                                        <button
+                                            className="application-more-button"
+                                            aria-label={`Actions for ${application.company}`}
+                                            onClick={(event) =>
+                                                handleMenuClick(
+                                                    event,
+                                                    application._id
+                                                )
+                                            }
+                                        >
+                                            <MoreHorizontal size={17} />
+                                        </button>
+
+
+                                        {menuId === application._id && (
+
+                                            <div
+                                                className="application-action-menu"
+                                                onClick={(event) =>
+                                                    event.stopPropagation()
+                                                }
+                                            >
+
+                                                <button
+                                                    onClick={handleEdit}
+                                                >
+                                                    <Pencil size={14} />
+                                                    Edit application
+                                                </button>
+
+                                                <button
+                                                    className="delete-action"
+                                                    onClick={() =>
+                                                        handleDelete(
+                                                            application._id
+                                                        )
+                                                    }
+                                                >
+                                                    <Trash2 size={14} />
+                                                    Delete
+                                                </button>
+
+                                            </div>
+
+                                        )}
+
+                                    </div>
 
                                 </div>
 
@@ -433,6 +555,7 @@ function Applications() {
 
 
             {showModal && (
+
                 <AddApplicationModal
                     onClose={() =>
                         setShowModal(false)
@@ -441,6 +564,91 @@ function Applications() {
                         fetchApplications();
                     }}
                 />
+
+            )}
+
+
+            {deleteId && (
+
+                <div
+                    className="delete-modal-overlay"
+                    onClick={() =>
+                        !deleteLoading &&
+                        setDeleteId(null)
+                    }
+                >
+
+                    <div
+                        className="delete-modal"
+                        onClick={(event) =>
+                            event.stopPropagation()
+                        }
+                    >
+
+                        <button
+                            className="delete-modal-close"
+                            onClick={() =>
+                                !deleteLoading &&
+                                setDeleteId(null)
+                            }
+                            disabled={deleteLoading}
+                        >
+                            <X size={17} />
+                        </button>
+
+
+                        <div className="delete-modal-icon">
+                            <Trash2 size={20} />
+                        </div>
+
+
+                        <h3>
+                            Delete application?
+                        </h3>
+
+                        <p>
+                            {deleteApplication?.company
+                                ? `Are you sure you want to delete your ${deleteApplication.company} application?`
+                                : "Are you sure you want to delete this application?"}
+                        </p>
+
+
+                        <div className="delete-modal-actions">
+
+                            <button
+                                className="delete-cancel-button"
+                                onClick={() =>
+                                    setDeleteId(null)
+                                }
+                                disabled={deleteLoading}
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                className="delete-confirm-button"
+                                onClick={confirmDelete}
+                                disabled={deleteLoading}
+                            >
+
+                                {deleteLoading ? (
+                                    <span className="delete-spinner" />
+                                ) : (
+                                    <Trash2 size={14} />
+                                )}
+
+                                {deleteLoading
+                                    ? "Deleting..."
+                                    : "Delete"}
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
             )}
 
         </div>
