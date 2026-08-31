@@ -43,7 +43,7 @@ function Applications() {
                 await api.get("/applications");
 
             setApplications(
-                response.data.applications || []
+                response.data || []
             );
 
         } catch (error) {
