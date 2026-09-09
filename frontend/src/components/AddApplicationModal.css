@@ -409,6 +409,22 @@
     }
 }
 
+@media (max-width: 360px) {
+    .application-modal-header,
+    .application-form {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .application-modal-header h2 {
+        font-size: 19px;
+    }
+
+    .application-modal-header p:last-child {
+        font-size: 10px;
+    }
+}
+
 @keyframes mobileModalIn {
     from {
         opacity: 0;

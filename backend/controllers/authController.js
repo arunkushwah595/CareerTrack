@@ -146,6 +146,7 @@ const getCurrentUser = async (req, res) => {
     }
 };
 
+
 module.exports = {
     registerUser,
     loginUser,

@@ -5,6 +5,18 @@
    SVG/Lucide icons
    ========================================================= */
 
+.shared-page-layout {
+    min-height: 100vh;
+    display: flex;
+    background: var(--background);
+}
+
+.shared-page-main {
+    width: calc(100% - 248px);
+    min-width: 0;
+    margin-left: 248px;
+}
+
 .applications-page {
     width: 100%;
     max-width: 1500px;
@@ -137,13 +149,20 @@
 }
 
 .applications-search:focus-within {
-    border-color: color-mix(
-        in srgb,
-        var(--primary) 45%,
-        var(--border)
-    );
-    box-shadow:
-        0 0 0 3px rgba(99, 102, 241, 0.09);
+    border-color: var(--border);
+    box-shadow: var(--shadow-sm);
+}
+
+.applications-search input:focus,
+.applications-filter select:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.applications-search:focus-within,
+.applications-filter:focus-within {
+    border-color: var(--border);
+    box-shadow: var(--shadow-sm);
 }
 
 .applications-search svg {
@@ -167,6 +186,7 @@
 }
 
 .applications-filter {
+    position: relative;
     height: 46px;
     min-width: 175px;
     padding: 0 12px;
@@ -182,6 +202,7 @@
 
 .applications-filter select {
     width: 100%;
+    min-width: 0;
     border: 0;
     outline: 0;
     appearance: none;
@@ -190,7 +211,15 @@
     font-family: inherit;
     font-size: 12px;
     font-weight: 600;
+    padding-right: 20px;
     cursor: pointer;
+}
+
+.applications-filter-chevron {
+    position: absolute;
+    right: 11px;
+    pointer-events: none;
+    color: var(--text-secondary);
 }
 
 /* =========================================================
@@ -261,6 +290,7 @@
 }
 
 .application-list-row {
+    position: relative;
     min-height: 74px;
     border-top: 1px solid var(--border);
     color: var(--text-secondary);
@@ -269,6 +299,11 @@
     transition:
         background-color 180ms ease,
         transform 180ms ease;
+}
+
+/* Keep the row containing the open menu above every other row */
+.application-list-row:has(.application-action-menu) {
+    z-index: 100;
 }
 
 .application-list-row:hover {
@@ -379,6 +414,31 @@
 .rejected-status {
     color: #dc2626;
     background: rgba(239, 68, 68, 0.1);
+}
+
+[data-theme="dark"] .applied-status {
+    color: #c4b5fd;
+    background: rgba(129, 140, 248, 0.2);
+}
+
+[data-theme="dark"] .interview-status {
+    color: #93c5fd;
+    background: rgba(59, 130, 246, 0.2);
+}
+
+[data-theme="dark"] .assessment-status {
+    color: #fcd34d;
+    background: rgba(245, 158, 11, 0.2);
+}
+
+[data-theme="dark"] .selected-status {
+    color: #6ee7b7;
+    background: rgba(16, 185, 129, 0.2);
+}
+
+[data-theme="dark"] .rejected-status {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.2);
 }
 
 /* =========================================================
@@ -654,6 +714,16 @@
 }
 
 @media (max-width: 760px) {
+    .shared-page-main {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .applications-page > .mobile-app-header {
+        width: calc(100% + 36px);
+        margin: -26px -18px 26px;
+    }
+
     .applications-page {
         padding: 26px 18px 42px;
     }
@@ -703,6 +773,11 @@
         padding: 22px 14px 36px;
     }
 
+    .applications-page > .mobile-app-header {
+        width: calc(100% + 28px);
+        margin: -22px -14px 22px;
+    }
+
     .applications-title {
         gap: 11px;
     }
@@ -719,6 +794,18 @@
     .applications-title p {
         font-size: 11px;
     }
+
+    .applications-card-header {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .applications-list-header,
+    .application-list-row,
+    .page-skeleton-row {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
 }
 
 /* =========================================================
@@ -727,9 +814,7 @@
 
 .applications-add-button:focus-visible,
 .application-more-button:focus-visible,
-.applications-page-empty button:focus-visible,
-.applications-search input:focus-visible,
-.applications-filter select:focus-visible {
+.applications-page-empty button:focus-visible {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
 }

@@ -1,5 +1,6 @@
 import {
     BriefcaseBusiness,
+    ChevronDown,
     Search,
     Plus,
     SlidersHorizontal,
@@ -13,6 +14,8 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import api from "../services/api";
 import AddApplicationModal from "../components/AddApplicationModal";
+import MobileAppHeader from "../components/MobileAppHeader";
+import AppSidebar from "../components/AppSidebar";
 
 import "./Applications.css";
 
@@ -51,7 +54,11 @@ function Applications() {
 
 
     useEffect(() => {
-        fetchApplications();
+        const loadApplications = async () => {
+            await fetchApplications();
+        };
+
+        loadApplications();
     }, []);
 
 
@@ -207,10 +214,15 @@ function Applications() {
 
 
     return (
-        <div
-            className="applications-page"
-            onClick={() => setMenuId(null)}
-        >
+        <div className="shared-page-layout">
+            <AppSidebar active="applications" />
+            <main className="shared-page-main">
+                <div
+                    className="applications-page"
+                    onClick={() => setMenuId(null)}
+                >
+
+                    <MobileAppHeader />
 
             <div className="applications-page-header">
 
@@ -304,6 +316,11 @@ function Applications() {
                         </option>
 
                     </select>
+
+                    <ChevronDown
+                        className="applications-filter-chevron"
+                        size={15}
+                    />
 
                 </div>
 
@@ -651,6 +668,8 @@ function Applications() {
 
             )}
 
+                </div>
+            </main>
         </div>
     );
 }

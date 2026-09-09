@@ -2,18 +2,17 @@ import {
     BriefcaseBusiness,
     CalendarDays,
     CheckCircle2,
+    ClipboardCheck,
     LayoutDashboard,
     LogOut,
-    Menu,
     Moon,
     Settings,
     Sun,
     TrendingUp,
-    UserRound,
     X
 } from "lucide-react";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
@@ -21,12 +20,14 @@ import { useTheme } from "../context/ThemeContext";
 import api from "../services/api";
 import "./Dashboard.css";
 import AddApplicationModal from "../components/AddApplicationModal";
+import MobileAppHeader from "../components/MobileAppHeader";
 
 function Dashboard() {
     const { logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
 
     const [applications, setApplications] = useState([]);
+    const [user, setUser] = useState(null);
     const [applicationsLoading, setApplicationsLoading] = useState(true);
     const [applicationsError, setApplicationsError] = useState("");
 
@@ -35,9 +36,13 @@ function Dashboard() {
             setApplicationsLoading(true);
             setApplicationsError("");
 
-            const response = await api.get("/applications");
+            const [response, userResponse] = await Promise.all([
+                api.get("/applications"),
+                api.get("/auth/me")
+            ]);
 
-            setApplications(response.data.applications || []);
+            setApplications(response.data || []);
+            setUser(userResponse.data.user);
 
         } catch (error) {
             setApplicationsError(
@@ -50,12 +55,15 @@ function Dashboard() {
     };
 
     useEffect(() => {
-        fetchApplications();
+        const loadApplications = async () => {
+            await fetchApplications();
+        };
+
+        loadApplications();
     }, []);
 
     const navigate = useNavigate();
 
-    const [sidebarOpen, setSidebarOpen] = useState(false);
     const [showApplicationModal, setShowApplicationModal] =
         useState(false);
 
@@ -68,9 +76,18 @@ function Dashboard() {
 
     const totalApplications = applications.length;
 
+    const appliedCount = applications.filter(
+        (application) => application.status === "Applied"
+    ).length;
+
     const interviewCount = applications.filter(
         (application) =>
             application.status === "Interview"
+    ).length;
+
+    const onlineAssessmentCount = applications.filter(
+        (application) =>
+            application.status === "Online Assessment"
     ).length;
 
     const offerCount = applications.filter(
@@ -82,6 +99,75 @@ function Dashboard() {
         (application) =>
             application.status === "Rejected"
     ).length;
+
+    const interviewRate = totalApplications
+        ? Math.round((interviewCount / totalApplications) * 100)
+        : 0;
+
+    const assessmentRate = totalApplications
+        ? Math.round((onlineAssessmentCount / totalApplications) * 100)
+        : 0;
+
+    const offerRate = totalApplications
+        ? Math.round((offerCount / totalApplications) * 100)
+        : 0;
+
+    const rejectionRate = totalApplications
+        ? Math.round((rejectedCount / totalApplications) * 100)
+        : 0;
+
+    const currentHour = new Date().getHours();
+    const greeting = currentHour < 12
+        ? "Good morning"
+        : currentHour < 18
+            ? "Good afternoon"
+            : "Good evening";
+
+    const monthlyApplications = useMemo(() => {
+        const today = new Date();
+        const months = Array.from({ length: 6 }, (_, index) => {
+            const date = new Date(
+                today.getFullYear(),
+                today.getMonth() - (5 - index),
+                1
+            );
+
+            return {
+                label: date.toLocaleDateString("en-US", {
+                    month: "short"
+                }),
+                year: date.getFullYear(),
+                month: date.getMonth(),
+                count: 0
+            };
+        });
+
+        applications.forEach((application) => {
+            const date = new Date(
+                application.appliedDate || application.createdAt
+            );
+
+            const month = months.find(
+                (entry) =>
+                    entry.year === date.getFullYear() &&
+                    entry.month === date.getMonth()
+            );
+
+            if (month) {
+                month.count += 1;
+            }
+        });
+
+        const maximum = Math.max(
+            ...months.map((month) => month.count),
+            1
+        );
+
+        return months.map((month) => ({
+            ...month,
+            height: `${Math.max((month.count / maximum) * 100, 8)}%`
+        }));
+    }, [applications]);
 
     const formatDate = (date) => {
         if (!date) {
@@ -121,19 +207,8 @@ function Dashboard() {
     return (
         <div className="dashboard-layout">
 
-            {/* Mobile overlay */}
-            {sidebarOpen && (
-                <div
-                    className="sidebar-overlay"
-                    onClick={() => setSidebarOpen(false)}
-                />
-            )}
-
             {/* Sidebar */}
-            <aside
-                className={`dashboard-sidebar ${sidebarOpen ? "sidebar-open" : ""
-                    }`}
-            >
+            <aside className="dashboard-sidebar">
 
                 <div className="sidebar-header">
 
@@ -147,13 +222,6 @@ function Dashboard() {
 
                     </div>
 
-                    <button
-                        className="mobile-close-button"
-                        onClick={() => setSidebarOpen(false)}
-                    >
-                        <X size={20} />
-                    </button>
-
                 </div>
 
 
@@ -163,7 +231,10 @@ function Dashboard() {
                         Overview
                     </p>
 
-                    <button className="navigation-item active">
+                    <button
+                        className="navigation-item active"
+                        onClick={() => navigate("/dashboard")}
+                    >
 
                         <LayoutDashboard size={18} />
 
@@ -172,7 +243,10 @@ function Dashboard() {
                     </button>
 
 
-                    <button className="navigation-item">
+                    <button
+                        className="navigation-item"
+                        onClick={() => navigate("/applications")}
+                    >
 
                         <BriefcaseBusiness size={18} />
 
@@ -181,7 +255,22 @@ function Dashboard() {
                     </button>
 
 
-                    <button className="navigation-item">
+                    <button
+                        className="navigation-item"
+                        onClick={() => navigate("/online-assessments")}
+                    >
+
+                        <ClipboardCheck size={18} />
+
+                        <span>Online assessments</span>
+
+                    </button>
+
+
+                    <button
+                        className="navigation-item"
+                        onClick={() => navigate("/interviews")}
+                    >
 
                         <CalendarDays size={18} />
 
@@ -195,16 +284,10 @@ function Dashboard() {
                     </p>
 
 
-                    <button className="navigation-item">
-
-                        <UserRound size={18} />
-
-                        <span>Profile</span>
-
-                    </button>
-
-
-                    <button className="navigation-item">
+                    <button
+                        className="navigation-item"
+                        onClick={() => navigate("/settings")}
+                    >
 
                         <Settings size={18} />
 
@@ -216,6 +299,30 @@ function Dashboard() {
 
 
                 <div className="sidebar-bottom">
+
+                    <div className="sidebar-account">
+
+                        <div className="profile-avatar">
+                            {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                        </div>
+
+                        <div className="profile-info">
+                            <strong>{user?.name || "CareerTrack user"}</strong>
+                        </div>
+
+                        <button
+                            className="header-theme-button sidebar-theme-button"
+                            onClick={toggleTheme}
+                            aria-label="Toggle theme"
+                        >
+                            {theme === "dark" ? (
+                                <Sun size={17} />
+                            ) : (
+                                <Moon size={17} />
+                            )}
+                        </button>
+
+                    </div>
 
                     <button
                         className="logout-button"
@@ -233,48 +340,7 @@ function Dashboard() {
             {/* Main */}
             <div className="dashboard-main">
 
-                {/* Header */}
-                <header className="dashboard-header">
-
-                    <button
-                        className="mobile-menu-button"
-                        onClick={() => setSidebarOpen(true)}
-                    >
-                        <Menu size={21} />
-                    </button>
-
-
-                    <div className="header-spacer"></div>
-
-
-                    <button
-                        className="header-theme-button"
-                        onClick={toggleTheme}
-                        aria-label="Toggle theme"
-                    >
-                        {theme === "dark" ? (
-                            <Sun size={18} />
-                        ) : (
-                            <Moon size={18} />
-                        )}
-                    </button>
-
-
-                    <div className="header-profile">
-
-                        <div className="profile-avatar">
-                            A
-                        </div>
-
-                        <div className="profile-info">
-                            <strong>Arun</strong>
-                            <span>Candidate</span>
-                        </div>
-
-                    </div>
-
-                </header>
-
+                <MobileAppHeader />
 
                 {/* Content */}
                 <main className="dashboard-content">
@@ -287,7 +353,7 @@ function Dashboard() {
                             </p>
 
                             <h1>
-                                Good afternoon, Arun
+                                {greeting}, {user?.name || "there"}
                             </h1>
 
                             <p>
@@ -324,7 +390,7 @@ function Dashboard() {
 
                                 <span className="stat-change positive">
                                     <TrendingUp size={13} />
-                                    12%
+                                    {totalApplications ? "100%" : "0%"}
                                 </span>
 
                             </div>
@@ -344,13 +410,39 @@ function Dashboard() {
 
                             <div className="stat-card-top">
 
+                                <div className="stat-icon assessment">
+                                    <ClipboardCheck size={19} />
+                                </div>
+
+                                <span className="stat-change positive">
+                                    <TrendingUp size={13} />
+                                    {assessmentRate}%
+                                </span>
+
+                            </div>
+
+                            <p>Online assessments</p>
+
+                            <strong>{onlineAssessmentCount}</strong>
+
+                            <span className="stat-description">
+                                Assessment stage
+                            </span>
+
+                        </div>
+
+
+                        <div className="stat-card">
+
+                            <div className="stat-card-top">
+
                                 <div className="stat-icon blue">
                                     <CalendarDays size={19} />
                                 </div>
 
                                 <span className="stat-change positive">
                                     <TrendingUp size={13} />
-                                    8%
+                                    {interviewRate}%
                                 </span>
 
                             </div>
@@ -376,7 +468,7 @@ function Dashboard() {
 
                                 <span className="stat-change positive">
                                     <TrendingUp size={13} />
-                                    4%
+                                    {offerRate}%
                                 </span>
 
                             </div>
@@ -400,8 +492,8 @@ function Dashboard() {
                                     <X size={19} />
                                 </div>
 
-                                <span className="stat-change neutral">
-                                    —
+                                <span className="stat-change rejected-change">
+                                    {rejectionRate}%
                                 </span>
 
                             </div>
@@ -444,46 +536,26 @@ function Dashboard() {
 
                                 <div className="chart-bars">
 
-                                    <div
-                                        className="chart-bar"
-                                        style={{ height: "35%" }}
-                                    />
-
-                                    <div
-                                        className="chart-bar"
-                                        style={{ height: "52%" }}
-                                    />
-
-                                    <div
-                                        className="chart-bar"
-                                        style={{ height: "43%" }}
-                                    />
-
-                                    <div
-                                        className="chart-bar"
-                                        style={{ height: "68%" }}
-                                    />
-
-                                    <div
-                                        className="chart-bar"
-                                        style={{ height: "58%" }}
-                                    />
-
-                                    <div
-                                        className="chart-bar active"
-                                        style={{ height: "82%" }}
-                                    />
+                                    {monthlyApplications.map((month) => (
+                                        <div
+                                            className={`chart-bar ${month === monthlyApplications[monthlyApplications.length - 1]
+                                                ? "active"
+                                                : ""}`}
+                                            key={`${month.year}-${month.month}`}
+                                            style={{ height: month.height }}
+                                            title={`${month.count} application${month.count === 1 ? "" : "s"} in ${month.label}`}
+                                        />
+                                    ))}
 
                                 </div>
 
                                 <div className="chart-labels">
 
-                                    <span>Mar</span>
-                                    <span>Apr</span>
-                                    <span>May</span>
-                                    <span>Jun</span>
-                                    <span>Jul</span>
-                                    <span>Aug</span>
+                                    {monthlyApplications.map((month) => (
+                                        <span key={`${month.year}-${month.month}`}>
+                                            {month.label}
+                                        </span>
+                                    ))}
 
                                 </div>
 
@@ -509,50 +581,110 @@ function Dashboard() {
 
                             <div className="status-list">
 
-                                <div className="status-row">
+                                <div className="status-row total-status-row">
 
-                                    <div>
-                                        <span className="status-indicator applied"></span>
-                                        Applied
+                                    <div className="status-row-main">
+                                        <div>
+                                            <span className="status-indicator total"></span>
+                                            Total applications
+                                        </div>
+
+                                        <strong>{totalApplications}</strong>
                                     </div>
 
-                                    <strong>{totalApplications}</strong>
+                                    <div className="status-progress total-progress">
+                                        <span style={{ width: totalApplications ? "100%" : "0%" }} />
+                                    </div>
 
                                 </div>
 
 
                                 <div className="status-row">
 
-                                    <div>
-                                        <span className="status-indicator interview"></span>
-                                        Interview
+                                    <div className="status-row-main">
+                                        <div>
+                                            <span className="status-indicator assessment"></span>
+                                            Online assessment
+                                        </div>
+
+                                        <strong>{onlineAssessmentCount}</strong>
                                     </div>
 
-                                    <strong>6</strong>
+                                    <div className="status-progress assessment-progress">
+                                        <span style={{ width: `${assessmentRate}%` }} />
+                                    </div>
 
                                 </div>
 
 
                                 <div className="status-row">
 
-                                    <div>
-                                        <span className="status-indicator offer"></span>
-                                        Offer
+                                    <div className="status-row-main">
+                                        <div>
+                                            <span className="status-indicator applied"></span>
+                                            Applied
+                                        </div>
+
+                                        <strong>{appliedCount}</strong>
                                     </div>
 
-                                    <strong>3</strong>
+                                    <div className="status-progress applied-progress">
+                                        <span style={{ width: `${totalApplications ? Math.round((appliedCount / totalApplications) * 100) : 0}%` }} />
+                                    </div>
 
                                 </div>
 
 
                                 <div className="status-row">
 
-                                    <div>
-                                        <span className="status-indicator rejected"></span>
-                                        Rejected
+                                    <div className="status-row-main">
+                                        <div>
+                                            <span className="status-indicator interview"></span>
+                                            Interview
+                                        </div>
+
+                                        <strong>{interviewCount}</strong>
                                     </div>
 
-                                    <strong>5</strong>
+                                    <div className="status-progress interview-progress">
+                                        <span style={{ width: `${interviewRate}%` }} />
+                                    </div>
+
+                                </div>
+
+
+                                <div className="status-row">
+
+                                    <div className="status-row-main">
+                                        <div>
+                                            <span className="status-indicator offer"></span>
+                                            Offer
+                                        </div>
+
+                                        <strong>{offerCount}</strong>
+                                    </div>
+
+                                    <div className="status-progress offer-progress">
+                                        <span style={{ width: `${offerRate}%` }} />
+                                    </div>
+
+                                </div>
+
+
+                                <div className="status-row">
+
+                                    <div className="status-row-main">
+                                        <div>
+                                            <span className="status-indicator rejected"></span>
+                                            Rejected
+                                        </div>
+
+                                        <strong>{rejectedCount}</strong>
+                                    </div>
+
+                                    <div className="status-progress rejected-progress">
+                                        <span style={{ width: `${rejectionRate}%` }} />
+                                    </div>
 
                                 </div>
 
@@ -575,7 +707,10 @@ function Dashboard() {
                                 </p>
                             </div>
 
-                            <button className="view-all-button">
+                            <button
+                                className="view-all-button"
+                                onClick={() => navigate("/applications")}
+                            >
                                 View all
                             </button>
 
