@@ -10,10 +10,10 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+    origin: process.env.FRONTEND_URL || true
+}));
 app.use(express.json());
-
-connectDB();
 
 app.get("/", (req, res) => {
     res.json({
@@ -24,9 +24,14 @@ app.get("/", (req, res) => {
 app.use("/api/applications", applicationRoutes);
 app.use("/api/auth", authRoutes);
 
+if (require.main === module) {
+    connectDB();
 
-const PORT = process.env.PORT || 5000;
+    const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}
+
+module.exports = app;
