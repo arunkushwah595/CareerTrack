@@ -3,11 +3,6 @@ import {
     CalendarDays,
     CheckCircle2,
     ClipboardCheck,
-    LayoutDashboard,
-    LogOut,
-    Moon,
-    Settings,
-    Sun,
     TrendingUp,
     X
 } from "lucide-react";
@@ -15,17 +10,13 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { useAuth } from "../context/AuthContext";
-import { useTheme } from "../context/ThemeContext";
 import api from "../services/api";
 import "./Dashboard.css";
 import AddApplicationModal from "../components/AddApplicationModal";
 import MobileAppHeader from "../components/MobileAppHeader";
+import AppSidebar from "../components/AppSidebar";
 
 function Dashboard() {
-    const { logout } = useAuth();
-    const { theme, toggleTheme } = useTheme();
-
     const [applications, setApplications] = useState([]);
     const [user, setUser] = useState(null);
     const [applicationsLoading, setApplicationsLoading] = useState(true);
@@ -66,13 +57,6 @@ function Dashboard() {
 
     const [showApplicationModal, setShowApplicationModal] =
         useState(false);
-
-    const handleLogout = () => {
-        logout();
-        navigate("/login");
-    };
-
-
 
     const totalApplications = applications.length;
 
@@ -207,134 +191,7 @@ function Dashboard() {
     return (
         <div className="dashboard-layout">
 
-            {/* Sidebar */}
-            <aside className="dashboard-sidebar">
-
-                <div className="sidebar-header">
-
-                    <div className="sidebar-brand">
-
-                        <div className="sidebar-brand-icon">
-                            <BriefcaseBusiness size={19} />
-                        </div>
-
-                        <span>CareerTrack</span>
-
-                    </div>
-
-                </div>
-
-
-                <nav className="sidebar-navigation">
-
-                    <p className="navigation-label">
-                        Overview
-                    </p>
-
-                    <button
-                        className="navigation-item active"
-                        onClick={() => navigate("/dashboard")}
-                    >
-
-                        <LayoutDashboard size={18} />
-
-                        <span>Dashboard</span>
-
-                    </button>
-
-
-                    <button
-                        className="navigation-item"
-                        onClick={() => navigate("/applications")}
-                    >
-
-                        <BriefcaseBusiness size={18} />
-
-                        <span>Applications</span>
-
-                    </button>
-
-
-                    <button
-                        className="navigation-item"
-                        onClick={() => navigate("/online-assessments")}
-                    >
-
-                        <ClipboardCheck size={18} />
-
-                        <span>Online assessments</span>
-
-                    </button>
-
-
-                    <button
-                        className="navigation-item"
-                        onClick={() => navigate("/interviews")}
-                    >
-
-                        <CalendarDays size={18} />
-
-                        <span>Interviews</span>
-
-                    </button>
-
-
-                    <p className="navigation-label navigation-label-spaced">
-                        Account
-                    </p>
-
-
-                    <button
-                        className="navigation-item"
-                        onClick={() => navigate("/settings")}
-                    >
-
-                        <Settings size={18} />
-
-                        <span>Settings</span>
-
-                    </button>
-
-                </nav>
-
-
-                <div className="sidebar-bottom">
-
-                    <div className="sidebar-account">
-
-                        <div className="profile-avatar">
-                            {user?.name?.charAt(0)?.toUpperCase() || "U"}
-                        </div>
-
-                        <div className="profile-info">
-                            <strong>{user?.name || "CareerTrack user"}</strong>
-                        </div>
-
-                        <button
-                            className="header-theme-button sidebar-theme-button"
-                            onClick={toggleTheme}
-                            aria-label="Toggle theme"
-                        >
-                            {theme === "dark" ? (
-                                <Sun size={17} />
-                            ) : (
-                                <Moon size={17} />
-                            )}
-                        </button>
-
-                    </div>
-
-                    <button
-                        className="logout-button"
-                        onClick={handleLogout}
-                    >
-                        <LogOut size={18} />
-                        <span>Logout</span>
-                    </button>
-
-                </div>
-
-            </aside>
+            <AppSidebar active="dashboard" />
 
 
             {/* Main */}

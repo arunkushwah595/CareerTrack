@@ -8,15 +8,31 @@ import {
     Settings,
     Sun
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import api from "../services/api";
 
 function AppSidebar({ active }) {
     const navigate = useNavigate();
     const { logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        const loadUser = async () => {
+            try {
+                const response = await api.get("/auth/me");
+                setUser(response.data.user);
+            } catch {
+                setUser(null);
+            }
+        };
+
+        loadUser();
+    }, []);
 
     const goTo = (path) => navigate(path);
 
@@ -58,8 +74,12 @@ function AppSidebar({ active }) {
 
             <div className="sidebar-bottom">
                 <div className="sidebar-account">
-                    <div className="profile-avatar">U</div>
-                    <div className="profile-info"><strong>CareerTrack</strong></div>
+                    <div className="profile-avatar">
+                        {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                    </div>
+                    <div className="profile-info">
+                        <strong>{user?.name || "Loading..."}</strong>
+                    </div>
                     <button className="header-theme-button sidebar-theme-button" onClick={toggleTheme} aria-label="Toggle theme">
                         {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
                     </button>
